@@ -1,0 +1,28 @@
+# Normalize line endings across operating systems
+* text=auto
+
+# Source code
+*.java text
+*.ts text
+*.tsx text
+*.js text
+*.jsx text
+*.css text
+*.sql text
+*.xml text
+*.yml text
+*.yaml text
+*.properties text
+*.md text diff=markdown
+*.json text
+
+# Scripts should keep executable semantics
+*.sh text eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.jar binary

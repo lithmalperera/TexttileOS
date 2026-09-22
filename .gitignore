@@ -1,0 +1,63 @@
+# --- Secrets and environment ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.keystore
+*.p12
+secrets/
+
+# --- IDE ---
+.idea/
+*.iml
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Java / Maven backend ---
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/dependency-reduced-pom.xml
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.properties
+hs_err_pid*
+replay_pid*
+
+# --- Gradle (not used yet; kept for safety) ---
+backend/.gradle/
+backend/build/
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Node / frontend ---
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Test and coverage artifacts ---
+backend/test-results/
+*.jacoco
+.jacoco/
+
+# --- Docker local volumes ---
+.docker-data/
+docker-data/
+postgres-data/
+
+# --- Database files (safety) ---
+*.db
+*.sqlite
+
+# --- OS generated files ---
+.DS_Store?
+desktop.ini
