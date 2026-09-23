@@ -1,6 +1,6 @@
 # In-Progress Features
 
-No application feature is currently in progress. The repository is still at the planning and structure stage.
+No application feature is currently in progress. The next backlog item is FND-004 (Local PostgreSQL with Docker Compose).
 
 When implementation begins, move the selected item from `backlog.md` here and record:
 

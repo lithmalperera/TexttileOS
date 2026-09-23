@@ -28,7 +28,7 @@ These are approved MVP implementation items. They are ordered roughly by depende
 - **Priority:** P0
 - **Depends on:** FND-001
 - **Acceptance:** The frontend installs, starts, type-checks, and renders a minimal shell.
-- **Status:** `PLANNED`
+- **Status:** `COMPLETED`
 
 ### FND-004: Local PostgreSQL with Docker Compose
 

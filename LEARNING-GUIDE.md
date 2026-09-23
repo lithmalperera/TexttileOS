@@ -108,6 +108,50 @@ The goal: a Spring Boot application that builds, starts, and is testable — wit
 
 No entities, no controllers, no security filters, no business modules. Those belong to their own tracker items. Building them now would mean debugging configuration and business logic at the same time.
 
+## FND-003: React and Vite frontend bootstrap (completed)
+
+The goal: a minimal React 19 + TypeScript + Vite 8 shell with no generated boilerplate and no business screens. Built by hand so every file is understood, not scaffolded and ignored.
+
+### `package.json`
+
+- **What:** the frontend equivalent of `pom.xml`: scripts and dependencies.
+- **Dependencies, each justified:** `react` and `react-dom` (the UI library); dev-only `vite` (dev server and bundler), `@vitejs/plugin-react` (React fast-refresh in dev; its peer range was verified against Vite 8), `typescript`, and `@types/react*` (type definitions for a library written in plain JavaScript).
+- **Scripts:** `dev` (vite dev server with hot reload), `build` (`tsc --noEmit` then `vite build`), `typecheck`, `preview` (serves the production build locally).
+- **Learn:** `^` in versions means "this minor and up" — npm resolves the newest compatible patch. `devDependencies` are build-time tools; the shipped bundle contains neither Vite nor TypeScript.
+
+### `tsconfig.json`
+
+- **What:** TypeScript compiler options.
+- **Key choices:** `strict: true` (the whole point of TypeScript), `noEmit: true` (tsc checks types; Vite does the emitting), `moduleResolution: bundler` (matches how Vite resolves imports), `verbatimModuleSyntax` (forces explicit `type` imports, aligning with modern bundling).
+- **Learn:** strict mode converts silent runtime bugs (undefined access, null assumptions) into compile-time errors.
+
+### `vite.config.ts`
+
+- **What:** three lines configuring the React plugin.
+- **Why so small:** Vite needs almost nothing by default. The API proxy for `/api` will be added in FND-005 when the frontend first calls the backend.
+- **Learn:** Vite serves source directly in dev (native ES modules) and only bundles for production — that is why dev startup is instant.
+
+### `index.html`
+
+- **What:** the single real HTML page of the SPA.
+- **Why:** a single-page application has exactly one page; React renders everything inside `#root` afterwards.
+- **Learn:** the `<script type="module">` tag is what makes Vite's dev server work with unbundled source.
+
+### `src/main.tsx`
+
+- **What:** the entry point that mounts React into `#root`.
+- **Choices:** `StrictMode` (double-invokes renders in dev to expose side effects), and an explicit fail-fast error if `#root` is missing instead of a cryptic "cannot read property of null".
+- **Learn:** StrictMode is a development-time correctness tool, not a production behavior change.
+
+### `src/App.tsx`
+
+- **What:** the root component; intentionally a static shell with no state, no router, no styling library.
+- **Learn:** the thin-client principle — screens arrive in UI-001 only after the API slices they consume exist.
+
+### Verification (developer-run)
+
+- `npm install`, `npm run dev` (shell visible at localhost:5173), `npm run typecheck`, `npm run build` — all passed.
+
 ## Rules for this guide
 
 - Every completed step gets an entry: what, why, learn.
