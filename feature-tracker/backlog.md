@@ -20,7 +20,7 @@ These are approved MVP implementation items. They are ordered roughly by depende
 - **Priority:** P0
 - **Depends on:** FND-001
 - **Acceptance:** The backend builds, starts, and exposes the planned package structure without business behaviour.
-- **Status:** `PLANNED`
+- **Status:** `COMPLETED`
 
 ### FND-003: React and Vite Frontend Bootstrap
 

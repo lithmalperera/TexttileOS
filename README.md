@@ -78,9 +78,10 @@ Redis, RabbitMQ, Kubernetes, GraphQL, and other optional infrastructure are deli
 - [08 - Security Design](docs/08-security-design.md)
 - [09 - Testing Strategy](docs/09-testing-strategy.md)
 - [10 - Development Plan](docs/10-development-plan.md)
-- [Feature Tracker](docs/feature-tracker/README.md)
+- [Feature Tracker](feature-tracker/README.md)
+- [Learning Guide](LEARNING-GUIDE.md)
 
-The initial documentation baseline is now complete. These documents should be updated alongside implementation when approved behaviour changes.
+The initial documentation baseline is now complete. These documents should be updated alongside implementation when approved behaviour changes. The [Learning Guide](LEARNING-GUIDE.md) explains each implementation step as it is built.
 
 ## Repository Conventions
 
