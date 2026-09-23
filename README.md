@@ -1,72 +1,87 @@
 # Textile Manufacturing Management System
 
-A portfolio-quality textile manufacturing management system designed as a focused modular monolith. The system will model the flow from a customer order to production, quality inspection, and inventory updates while demonstrating practical backend engineering with Java and Spring Boot.
+A focused portfolio project that demonstrates backend engineering through a small textile manufacturing workflow. The application is a modular monolith using Java, Spring Boot, PostgreSQL, JPA/Hibernate, JWT security, REST, Docker Compose, and a small React client.
 
-**Status:** Planning and documentation phase. No backend or frontend functionality has been implemented yet.
+**Current status:** Foundation complete; identity feature in progress. The application is being built incrementally and verified by the developer at every step.
 
-## Project Goal
+## MVP Goal
 
-This project is intentionally smaller than a full ERP system. It focuses on a traceable manufacturing workflow that can be built, tested, and explained by one developer:
+The MVP deliberately reduces business breadth while keeping technical depth:
 
 ```text
-Customer order
-  -> Production order
-  -> BOM snapshot and material requirements
-  -> Inventory availability check and reservation
-  -> Production stages
-  -> Quality inspection and defect recording
-  -> Production completion
-  -> Material consumption and finished-product inventory update
+JWT login
+  -> Product, material, and simple BOM setup
+  -> Receive material stock
+  -> Create one-product manufacturing order
+  -> Create production order and snapshot BOM
+  -> Reserve materials with database locking
+  -> Progress through fixed production stages
+  -> Record quality pass/fail
+  -> Complete production transactionally
+  -> Consume materials and receive finished product
 ```
 
 The project is intended to demonstrate:
 
-- Relational data modelling with PostgreSQL
-- REST API design with DTOs, validation, and OpenAPI documentation
-- Spring service-layer business rules and transaction boundaries
-- Authentication and role-based authorization with Spring Security and JWT
-- Inventory consistency under competing requests
-- Automated unit, integration, and workflow testing
-- A small React and TypeScript interface for the operational workflow
-- Dockerized local development without unnecessary distributed infrastructure
+- Relational modelling with PostgreSQL
+- Spring Boot REST APIs with DTOs and validation
+- JPA/Hibernate mappings and Flyway migrations
+- JWT authentication and role-based authorization
+- Transaction boundaries and inventory concurrency control
+- Automated unit, integration, rollback, and concurrency tests
+- Dockerized development
+- A small React and TypeScript client that consumes the finished API
 
-## Proposed Modules
+## Four Logical Areas
 
-The application will be one deployable Spring Boot application with clear internal module boundaries:
+The application remains one deployable modular monolith. The original broader business areas are grouped into four logical areas so the project can be completed and explained by one developer.
 
-1. Identity and Access (Authentication and Users)
-2. Products
-3. Materials
-4. Bill of Materials (BOM)
-5. Inventory
-6. Customers
-7. Customer Orders
-8. Production
-9. Production Stages
-10. Quality and Defects
+### Identity and Access
 
-The MVP is scoped around a small-batch cut-and-sew manufacturing workflow. The full scope and the responsibilities of each module are described in the [project overview](docs/01-project-overview.md).
+Users, fixed roles, BCrypt password hashing, JWT login, and backend authorization.
+
+### Catalog
+
+Products, materials, and one simple active BOM per product. Production stores an immutable BOM snapshot.
+
+### Inventory
+
+One logical warehouse, stock balances, receipts, adjustments, movement history, reservations, consumption, and finished-product receipts.
+
+### Manufacturing
+
+The single-product manufacturing order, production order, fixed stage state machine, quality pass/fail, and transactional completion.
+
+## Deferred Extensions
+
+These features were part of the original broader design. They are deliberately deferred, not forgotten:
+
+- Customer master data and multi-line customer orders
+- Full BOM revision lifecycle, alternate materials, and multi-level BOMs
+- Separate configurable production-stage definitions and execution history
+- Detailed defect records, rework, and repeat inspection
+- Multiple warehouses, lots, serial numbers, and barcode scanning
+- Supplier purchasing, accounting, costing, scheduling, and machine integration
+- Customer portal, notifications, refresh tokens, and external identity providers
+- Redis, RabbitMQ, Kubernetes, GraphQL, and microservices
+
+The extension rationale is recorded in [`docs/01-project-overview.md`](docs/01-project-overview.md) and the feature tracker.
 
 ## Technology Direction
 
-| Area | Planned technology |
-| --- | --- |
-| Backend | Java and Spring Boot |
-| Frontend | React, TypeScript, and Vite |
-| Database | PostgreSQL |
-| Persistence | Spring Data JPA and Hibernate |
-| Security | Spring Security and JWT |
-| API | REST |
-| Documentation | Markdown and OpenAPI/Swagger |
-| Local environment | Docker Compose |
-| Version control | Git and GitHub |
-| Architecture | Modular monolith |
-
-Redis, RabbitMQ, Kubernetes, GraphQL, and other optional infrastructure are deliberately deferred. They will only be considered after the core workflow is stable and a concrete requirement justifies them.
+- Backend: Java and Spring Boot
+- Frontend: React, TypeScript, and Vite
+- Database: PostgreSQL
+- Persistence: Spring Data JPA and Hibernate
+- Security: Spring Security and JWT
+- API: REST
+- Migrations: Flyway
+- Documentation: Markdown and OpenAPI/Swagger
+- Local environment: Docker Compose
+- Version control: Git and GitHub
+- Architecture: Modular monolith
 
 ## Documentation
-
-### Available now
 
 - [01 - Project Overview](docs/01-project-overview.md)
 - [02 - Requirements](docs/02-requirements.md)
@@ -81,68 +96,46 @@ Redis, RabbitMQ, Kubernetes, GraphQL, and other optional infrastructure are deli
 - [Feature Tracker](feature-tracker/README.md)
 - [Learning Guide](LEARNING-GUIDE.md)
 
-The initial documentation baseline is now complete. These documents should be updated alongside implementation when approved behaviour changes. The [Learning Guide](LEARNING-GUIDE.md) explains each implementation step as it is built.
+Update the relevant document whenever an approved scope decision changes. The Learning Guide explains each implementation step and the reasoning behind it.
+
+## Current Commands
+
+### Backend
+
+```bash
+cd backend
+./mvnw test
+./mvnw spring-boot:run
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+npm run typecheck
+npm run build
+```
+
+### PostgreSQL
+
+```bash
+cp .env.example .env
+docker compose up -d
+docker compose down
+```
+
+### API tools
+
+- Health: `http://localhost:8080/actuator/health`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- Tables: `docker compose exec postgres psql -U textile -d textile -c '\dt'`
 
 ## Repository Conventions
 
-### Branches
-
-- `main`: always buildable; contains reviewed work.
-- Feature branches: `feature/<tracker-id>-short-name`, for example `feature/fnd-002-backend-bootstrap`.
-- Documentation-only changes may use `docs/<topic>`.
-
-### Commits
-
-- Use short imperative subjects: `Add backend module skeleton`.
-- Reference the tracker ID in the body when one exists, for example `Tracker: FND-001`.
-- Do not commit secrets, environment files, build output, IDE files, or generated dependencies. `.gitignore` and `.gitattributes` enforce the baseline.
-
-### Commands
-
-The application is not bootstrapped yet, so there are no build or run commands yet. They will be added here as each foundation feature lands:
-
-- `FND-002` adds backend build and test commands.
-- `FND-003` adds frontend install, dev, and type-check commands.
-- `FND-004` adds the Docker Compose database commands.
-- `FND-005` adds migration and verification commands.
-
-### Migration, health, and API documentation (FND-005)
-
-```bash
-./mvnw test                                  # backend tests (context + web foundation)
-./mvnw spring-boot:run                       # start backend; applies Flyway migrations first
-```
-
-- Health: `http://localhost:8080/actuator/health`
-- API docs: `http://localhost:8080/swagger-ui.html`
-- Tables: `docker compose exec postgres psql -U textile -d textile -c '\dt'` shows `flyway_schema_history` plus business tables as migrations are added
-- Anything under `/api/**` stays `401` until real authentication exists (IAM phase)
-
-### Docker Compose database (FND-004)
-
-```bash
-cp .env.example .env    # local overrides; .env is git-ignored
-docker compose up -d    # start PostgreSQL in the background
-docker compose ps       # confirm the container is healthy
-docker compose down     # stop; data survives in the named volume
-docker compose down -v  # stop AND erase data (full reset)
-```
-
-The backend reads `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` from the environment; the committed defaults match this Compose setup for local development.
-
-Working with the repository right now only requires Git:
-
-```bash
-git status                  # see what changed
-git add <files>             # stage specific files; avoid blanket adds
-git commit                  # commit staged work with a documented message
-git switch -c <branch>      # create a feature branch
-```
-
-## Scope Guardrails
-
-- Keep one deployable application and one primary PostgreSQL database.
-- Prefer a complete, tested workflow over a large number of shallow features.
-- Keep the frontend small and focused on the operational workflow.
-- Do not add procurement, accounting, payroll, advanced planning, or multi-site inventory to the MVP.
-- Do not begin backend or frontend implementation until the scope and design have been reviewed.
+- `main` contains reviewed, buildable work.
+- Feature branches use `feature/<tracker-id>-short-name`.
+- Documentation-only branches use `docs/<topic>`.
+- Commit subjects are short and imperative.
+- Do not commit secrets, environment files, build output, IDE files, or generated dependencies.

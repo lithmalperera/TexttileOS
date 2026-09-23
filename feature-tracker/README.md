@@ -1,6 +1,6 @@
 # Feature Tracker
 
-This folder keeps the project scope explicit. It separates approved work from ideas that have not yet earned a place in the MVP.
+This folder keeps the project scope explicit. The active MVP uses four logical areas: Identity, Catalog, Inventory, and Manufacturing. Broader features remain documented as deferred extensions instead of silently expanding the build.
 
 ## Files
 
@@ -9,6 +9,8 @@ This folder keeps the project scope explicit. It separates approved work from id
 - `completed.md`: features and project milestones that are finished
 - `ideas.md`: AI-assisted and human-generated ideas awaiting a decision
 - `feature-template.md`: template for documenting one feature before implementation
+
+The active implementation order is in `backlog.md`. Deferred extensions are recorded there and in `ideas.md` so future work has a starting point without becoming current scope.
 
 ## Feature Status Flow
 

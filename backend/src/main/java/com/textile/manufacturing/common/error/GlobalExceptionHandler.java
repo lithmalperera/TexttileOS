@@ -4,11 +4,18 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import com.textile.manufacturing.identity.service.DuplicateEmailException;
+import com.textile.manufacturing.identity.service.UnknownRoleException;
+import com.textile.manufacturing.identity.service.UserNotFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -30,12 +37,43 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(UserNotFoundException.class)
+    ProblemDetail handleUserNotFound(UserNotFoundException exception) {
+        return problem(HttpStatus.NOT_FOUND, "Not found", exception.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateEmailException.class)
+    ProblemDetail handleDuplicateEmail(DuplicateEmailException exception) {
+        return problem(HttpStatus.CONFLICT, "Duplicate resource", exception.getMessage());
+    }
+
+    @ExceptionHandler(UnknownRoleException.class)
+    ProblemDetail handleUnknownRole(UnknownRoleException exception) {
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid reference", exception.getMessage());
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ProblemDetail handleDataIntegrity(DataIntegrityViolationException exception) {
+        log.warn("Data integrity violation", exception);
+        return problem(HttpStatus.CONFLICT, "Duplicate resource",
+            "The resource already exists or violates a constraint.");
+    }
+
+    @ExceptionHandler({AccessDeniedException.class, AuthenticationException.class})
+    void rethrowSecurityException(RuntimeException exception) {
+        throw exception;
+    }
+
     @ExceptionHandler(Exception.class)
     ProblemDetail handleUnexpected(Exception exception) {
         log.error("Unhandled exception", exception);
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-            HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred.");
-        problem.setTitle("Internal error");
+        return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Internal error",
+            "An unexpected error occurred.");
+    }
+
+    private ProblemDetail problem(HttpStatus status, String title, String detail) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+        problem.setTitle(title);
         return problem;
     }
 }

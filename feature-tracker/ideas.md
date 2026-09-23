@@ -1,6 +1,32 @@
 # Feature Ideas
 
-These ideas are suggestions, not approved scope. Some were generated from common manufacturing-system requirements or AI-assisted brainstorming. Each one needs a human decision before entering the backlog.
+These ideas are suggestions, not approved scope. Some were generated from common manufacturing-system requirements or AI-assisted brainstorming. Each one needs a human decision before entering the backlog. The reduced MVP intentionally defers several features from the original ten-area design.
+
+## Deferred Extensions From the Original Design
+
+### EXT-001: Customer Master and Multi-Line Orders
+
+- **Why it may matter:** Reusable customer records and multi-product orders are realistic in a larger system.
+- **Why deferred:** The MVP stores customer name/reference on one-product manufacturing orders.
+- **First design step later:** Add customer and order-line tables without changing inventory completion.
+
+### EXT-002: BOM Revisions and Engineering Change Control
+
+- **Why it may matter:** Manufacturers need historical approved BOMs.
+- **Why deferred:** The MVP keeps one active BOM and protects history through production snapshots.
+- **First design step later:** Add immutable revisions and an activation workflow.
+
+### EXT-003: Separate Production Stage Module
+
+- **Why it may matter:** Product-specific routes and execution history need independent data.
+- **Why deferred:** The MVP uses fixed stage fields on production order.
+- **First design step later:** Add stage definitions and execution records.
+
+### EXT-004: Detailed Quality and Rework
+
+- **Why it may matter:** Failed batches often need defect classification and rework.
+- **Why deferred:** The MVP only needs a quality gate to protect completion.
+- **First design step later:** Add defect records, dispositions, rework, and repeat inspection.
 
 ## IDEA-001: Low-Stock Indicators and Reorder Thresholds
 

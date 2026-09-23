@@ -1,6 +1,6 @@
 # In-Progress Features
 
-No application feature is currently in progress. The foundation phase (FND-001 through FND-005) is complete. The next backlog item is IAM-001 (Internal users and fixed roles), the first feature with business tables.
+No application feature is currently in progress. The next backlog item is IAM-002 (JWT login and server-side authorization).
 
 When implementation begins, move the selected item from `backlog.md` here and record:
 

@@ -1,6 +1,6 @@
 # Approved Feature Backlog
 
-These are approved MVP implementation items. They are ordered roughly by dependency, not by the number of files they will require.
+This is the reduced MVP backlog. It prioritizes one complete manufacturing workflow and strong backend behaviour over broad ERP coverage.
 
 **Status values:** `PLANNED`, `IN_PROGRESS`, `REVIEW`, `COMPLETED`, `DEFERRED`, `REJECTED`
 
@@ -8,163 +8,151 @@ These are approved MVP implementation items. They are ordered roughly by depende
 
 ### FND-001: Git Repository and Project Hygiene
 
-- **Owner module:** Project
+- **Owner:** Project
 - **Priority:** P0
-- **Depends on:** None
-- **Acceptance:** The repository has a safe `.gitignore`, documented commands, and no secrets or generated files committed.
 - **Status:** `COMPLETED`
 
 ### FND-002: Spring Boot Backend Bootstrap
 
-- **Owner module:** Project
+- **Owner:** Project
 - **Priority:** P0
-- **Depends on:** FND-001
-- **Acceptance:** The backend builds, starts, and exposes the planned package structure without business behaviour.
 - **Status:** `COMPLETED`
 
 ### FND-003: React and Vite Frontend Bootstrap
 
-- **Owner module:** Project
+- **Owner:** Project
 - **Priority:** P0
-- **Depends on:** FND-001
-- **Acceptance:** The frontend installs, starts, type-checks, and renders a minimal shell.
 - **Status:** `COMPLETED`
 
 ### FND-004: Local PostgreSQL with Docker Compose
 
-- **Owner module:** Project
+- **Owner:** Project
 - **Priority:** P0
-- **Depends on:** FND-001, FND-002
-- **Acceptance:** PostgreSQL starts from documented configuration and the backend can connect to it.
 - **Status:** `COMPLETED`
 
 ### FND-005: Migration, Health, Error, and OpenAPI Foundation
 
-- **Owner module:** Project
+- **Owner:** Project
 - **Priority:** P0
-- **Depends on:** FND-002, FND-004
-- **Acceptance:** Migrations run on a clean database, health responds, errors have one shape, and OpenAPI is available.
 - **Status:** `COMPLETED`
 
 ## Identity and Access
 
 ### IAM-001: Internal Users and Fixed Roles
 
-- **Owner module:** Identity and Access
+- **Owner:** Identity and Access
 - **Priority:** P0
 - **Depends on:** FND-005
-- **Acceptance:** An administrator can create and deactivate users and assign the five documented roles.
-- **Status:** `PLANNED`
+- **Acceptance:** Admin user management works with BCrypt, fixed roles, DTOs, validation, safe errors, and tests.
+- **Status:** `COMPLETED`
 
 ### IAM-002: JWT Login and Server-Side Authorization
 
-- **Owner module:** Identity and Access
+- **Owner:** Identity and Access
 - **Priority:** P0
 - **Depends on:** IAM-001
-- **Acceptance:** Valid users receive short-lived JWTs and protected commands enforce role permissions.
+- **Acceptance:** Valid users receive short-lived JWTs; active roles control protected operations.
 - **Status:** `PLANNED`
 
-## Catalog and BOM
+## Catalog
 
-### CAT-001: Product and Material Catalog
+### CAT-001: Products and Materials
 
-- **Owner module:** Products, Materials
+- **Owner:** Catalog
 - **Priority:** P0
 - **Depends on:** IAM-002
-- **Acceptance:** Authorized users can create, validate, view, update, and archive master records.
+- **Acceptance:** Authorized users can create, validate, inspect, update, and archive products and materials.
 - **Status:** `PLANNED`
 
-### BOM-001: BOM Revisions and Requirement Calculation
+### BOM-001: Simple Active BOM and Snapshot Calculation
 
-- **Owner module:** BOM
+- **Owner:** Catalog
 - **Priority:** P0
 - **Depends on:** CAT-001
-- **Acceptance:** Draft BOMs can be activated, only one revision is active, and requirements calculate correctly.
+- **Acceptance:** One active single-level BOM calculates requirements and is copied into production requirements.
 - **Status:** `PLANNED`
 
 ## Inventory
 
-### INV-001: Stock Balances, Receipts, Adjustments, and Ledger
+### INV-001: Stock Balances and Movement Ledger
 
-- **Owner module:** Inventory
+- **Owner:** Inventory
 - **Priority:** P0
 - **Depends on:** CAT-001, FND-005
-- **Acceptance:** Stock balances and append-only movements remain consistent after receipts and adjustments.
+- **Acceptance:** Receipts and adjustments update consistent balances and append movements.
 - **Status:** `PLANNED`
 
-### INV-002: Atomic Material Reservations and Release
+### INV-002: Atomic Reservations and Release
 
-- **Owner module:** Inventory, Production
+- **Owner:** Inventory
 - **Priority:** P0
 - **Depends on:** BOM-001, INV-001
-- **Acceptance:** Required materials reserve all-or-nothing, release safely, and cannot be oversold concurrently.
+- **Acceptance:** Reservations are all-or-nothing, row-locked, auditable, and safe under concurrent requests.
 - **Status:** `PLANNED`
 
-## Customers and Orders
+## Manufacturing
 
-### CUS-001: Customers and Customer Orders
+### MFG-001: Manufacturing Order, Production, and Fixed Stages
 
-- **Owner module:** Customers, Customer Orders
+- **Owner:** Manufacturing
 - **Priority:** P0
-- **Depends on:** CAT-001, IAM-002
-- **Acceptance:** A planner can create and confirm valid orders with stable order lines.
+- **Depends on:** BOM-001, INV-002
+- **Acceptance:** One-product manufacturing demand creates production with a BOM snapshot and fixed stage transitions.
 - **Status:** `PLANNED`
 
-## Production
+### MFG-002: Quality Gate and Transactional Completion
 
-### PROD-001: Production Order and BOM Snapshot
-
-- **Owner module:** Production
+- **Owner:** Manufacturing, Inventory
 - **Priority:** P0
-- **Depends on:** BOM-001, CUS-001
-- **Acceptance:** One confirmed order line creates one full-quantity production order with immutable requirements.
+- **Depends on:** MFG-001, INV-002
+- **Acceptance:** Quality pass enables one atomic completion; failure blocks it; stock movements and statuses remain consistent.
 - **Status:** `PLANNED`
 
-### STG-001: Fixed Production-Stage Execution
+## Frontend and Release
 
-- **Owner module:** Production Stages
-- **Priority:** P0
-- **Depends on:** PROD-001, INV-002
-- **Acceptance:** Operators can progress through the fixed route without skipping or repeating stages.
-- **Status:** `PLANNED`
+### UI-001: Thin Manufacturing Workflow Client
 
-### QLT-001: Final Quality Inspection and Defects
-
-- **Owner module:** Quality and Defects
-- **Priority:** P0
-- **Depends on:** STG-001
-- **Acceptance:** A quality inspector can record pass/fail and defects; failure blocks completion.
-- **Status:** `PLANNED`
-
-### FLOW-001: Transactional Production Completion
-
-- **Owner module:** Workflow, Production, Inventory
-- **Priority:** P0
-- **Depends on:** INV-002, QLT-001
-- **Acceptance:** Passing production consumes reserved materials, receives finished stock, and closes statuses atomically.
-- **Status:** `PLANNED`
-
-## Frontend and Quality
-
-### UI-001: Thin Operational Workflow Client
-
-- **Owner module:** Frontend
+- **Owner:** Frontend
 - **Priority:** P1
-- **Depends on:** IAM-002, FLOW-001
-- **Acceptance:** A reviewer can exercise login and the main order-to-completion flow without database edits.
+- **Depends on:** IAM-002, MFG-002
+- **Acceptance:** A reviewer can log in and exercise the main workflow without direct database edits.
 - **Status:** `PLANNED`
 
-### QA-001: MVP Hardening and Release Verification
+### QA-001: MVP Hardening and Portfolio Release
 
-- **Owner module:** Project
+- **Owner:** Project
 - **Priority:** P0
-- **Depends on:** All P0 items
-- **Acceptance:** Unit, PostgreSQL integration, concurrency, security, API, and workflow tests pass from a clean setup.
+- **Depends on:** All active P0 items
+- **Acceptance:** Key service, PostgreSQL, security, concurrency, rollback, API, and workflow tests pass from a clean setup.
 - **Status:** `PLANNED`
+
+## Deferred Extensions
+
+These are not active backlog work, but the MVP leaves explicit extension points:
+
+### EXT-001: Customer Master and Multi-Line Orders
+
+Future `customer`, `customer_order`, and `customer_order_line` tables.
+
+### EXT-002: BOM Revisions and Engineering Change Control
+
+Future draft/active/retired revisions and effective dates.
+
+### EXT-003: Separate Production Stage Module
+
+Future stage definitions, execution history, pause/resume, and configurable routes.
+
+### EXT-004: Detailed Quality and Rework
+
+Future defect records, dispositions, rework, and repeat inspections.
+
+### EXT-005: Advanced Inventory and Procurement
+
+Future warehouses, transfers, lots, serials, suppliers, purchasing, and costing.
 
 ## Backlog Rules
 
-- A P0 item supports the documented MVP and should be completed before adding optional features.
-- A feature cannot be marked `COMPLETED` because code exists alone; its acceptance criteria, tests, security checks, and documentation must also be complete.
-- If scope changes, update the relevant requirements or business-rules document before changing the backlog item.
-- Move only the current item or small active slice to `in-progress.md` to keep work visible and manageable.
+- P0 active items support the reduced MVP.
+- Do not move deferred extensions into the active backlog without updating the design documents.
+- A feature is complete only after code, tests, security review, documentation, and developer verification.
+- Keep only the current small slice in `in-progress.md`.

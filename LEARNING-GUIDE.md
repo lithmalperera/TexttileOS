@@ -27,7 +27,7 @@ Before any code, the project wrote ten design documents in `docs/`. This is deli
 
 - **What:** requirements, use cases, business rules, architecture, database, API, security, and testing documents.
 - **Why:** scope control. A solo project fails by growing too big, not by being built too slowly. The documents decide what is in and out before code exists.
-- **Learn:** you can explain the MVP boundary in one sentence: *a confirmed customer-order line becomes one full-quantity production order that reserves materials atomically, passes a quality gate, and completes with an all-or-nothing inventory update.*
+- **Learn:** you can explain the reduced MVP boundary in one sentence: *an authenticated planner creates a one-product manufacturing order that snapshots a simple BOM, reserves materials atomically, passes a fixed-stage quality gate, and completes with an all-or-nothing inventory update.*
 
 ## FND-001: Git repository hygiene (completed)
 
@@ -49,7 +49,7 @@ Before any code, the project wrote ten design documents in `docs/`. This is deli
 - **Why:** Windows uses `CRLF` line endings, macOS/Linux use `LF`. Without this rule, files show fake "whole file changed" diffs and scripts break.
 - **Learn:** the difference: `.gitignore` decides *which* files are tracked; `.gitattributes` decides *how* tracked files behave.
 
-## FND-002: Spring Boot backend bootstrap (in progress)
+## FND-002: Spring Boot backend bootstrap (completed)
 
 The goal: a Spring Boot application that builds, starts, and is testable — with zero business logic. A stable shell that everything else will be built on.
 
@@ -215,6 +215,71 @@ The goal: a minimal React 19 + TypeScript + Vite 8 shell with no generated boile
 
 - `./mvnw test` — 4/4 (context load, main-class bean, health public, protected path 401).
 - Runtime: health `{"status":"UP"}`, anonymous API call `401`, `flyway_schema_history` present in psql, Swagger UI reachable.
+
+## Scope Revision: Reduced MVP (approved)
+
+The original design described ten broad business areas. That was intentionally reduced before deeper implementation.
+
+- **Keep:** Identity, Catalog, Inventory, and Manufacturing.
+- **Keep technical depth:** JWT, DTOs, validation, JPA, Flyway, PostgreSQL, Docker, REST, transactions, row locking, rollback tests, and a thin React client.
+- **Simplify:** customer demand is one manufacturing order with a customer name/reference; BOM is one active simple BOM; stages are fixed fields; quality is one pass/fail inspection.
+- **Defer:** customer master, multi-line orders, BOM revisions, separate stage tables, detailed defects/rework, warehouses, procurement, scheduling, and external infrastructure.
+- **Why:** fewer business lifecycles leave more time to prove consistency, security, concurrency, and transaction behaviour.
+- **Future path:** deferred items remain documented as `EXT-*` extensions in the project overview and feature tracker; they were not forgotten or silently removed.
+
+## IAM-001: Internal users and fixed roles (in progress)
+
+### Step 1: `V2__identity_users_and_roles.sql`
+
+- **What:** the first business tables: `role` (seeded), `app_user`, `user_role`.
+- **Decisions:**
+  - Roles are seeded by the migration with fixed literal UUIDs — reference data is owned by migrations, not runtime code, so the authorization model cannot drift between environments.
+  - `email` (as typed) plus `email_normalized` (lowercased, `UNIQUE`) — case-insensitive identity with a plain unique index. Rejected alternative: a functional index on `lower(email)`.
+  - `user_role` has a composite primary key `(user_id, role_id)` — the pair *is* the identity, so duplicate assignments are impossible by construction.
+  - `status` has a `CHECK` constraint; foreign keys are restrictive (no `ON DELETE`) because users appear in future audit records and are deactivated, never deleted.
+- **Learn:** defense in depth — the service validates for good error messages; the database constraint is the last line that holds even when a bug bypasses the service.
+- **Verified:** developer saw the three tables and five seeded roles.
+
+### Step 2: entities and repositories
+
+- **What:** `AppUser`, `Role`, `UserStatus` in `identity/domain`; two Spring Data repositories in `identity/repository`.
+- **Decisions:**
+  - The entity has no setters: `AppUser.register(...)` is the only creation path (trims, normalizes, requires a role, starts `ACTIVE`), and `deactivate()` is the only status change. Domain model, not a data bag.
+  - `@Enumerated(EnumType.STRING)` — the default `ORDINAL` stores array positions; reordering the enum would silently corrupt rows.
+  - `@ManyToMany(fetch = EAGER)` for roles — normally an anti-pattern, correct here: a fixed five-row set needed on every authenticated request, and lazy loading fails in security filters where no transaction is open.
+  - `@Version` (optimistic locking), `@CreationTimestamp`/`@UpdateTimestamp`, protected no-arg constructor (Hibernate requirement), `getRoles()` returns an unmodifiable copy.
+  - Repositories derive queries from method names (`findByEmailNormalized`, `findByCodeIn`) — zero SQL written.
+- **Verified:** `spring-boot:run` started cleanly — `ddl-auto: validate` compared every mapping against the `V2` schema and approved it. This is the payoff of `validate` over `update`.
+
+### Step 3: service layer
+
+- **What:** `UserService` (create/list/get/deactivate), a `BCryptPasswordEncoder` bean, and three typed exceptions (`UserNotFoundException`, `DuplicateEmailException`, `UnknownRoleException`).
+- **Decisions:**
+  - Hashing happens in the service (application policy); the entity only requires that *a* hash was provided.
+  - `@Transactional` on commands, `readOnly = true` on queries — one boundary for everything a command must atomically change.
+  - `deactivateUser` has no explicit `save()` — managed entities flush changes at commit (dirty checking).
+  - Honest gap: duplicate-email check is check-then-insert; two concurrent creates race, and the `UNIQUE` constraint decides the winner. The loser surfaces as a constraint violation that the API layer must map to `409` (Step 4).
+- **Incident 1:** `Pageable` was imported from `java.util` — it lives in `org.springframework.data.domain`. The first compiler error told the whole story: `location: package java.util`. Read the first error; later ones are usually noise.
+- **Incident 2 — the scaffolding expired:** tests failed with `No qualifying bean of type 'AppUserRepository'`. Cause: the FND-002 test-profile exclusions (DataSource/JPA/Flyway auto-configuration) meant no repository beans could exist; the moment `UserService` — a real bean — entered the context, it had nothing to inject. Exclusion-based scaffolding has a known expiry date: the first real bean that depends on what was excluded. The fix removed the scaffolding entirely: a `IntegrationTestBase` with a singleton Testcontainers PostgreSQL now backs all tests, migrations run in the test context, and the condition-evaluation report (the huge "Did not match" dump) was the failure analyzer showing exactly which infrastructure was switched off.
+- **Verified:** `./mvnw test` passes 4/4 against a real PostgreSQL container; test schema is created by the actual Flyway migrations.
+
+### Step 4: REST API
+
+- **What:** `UserController` (list/create/get/deactivate), `UserResponse` and `CreateUserRequest` DTOs, `PageResponse<T>`, `@PreAuthorize("hasRole('ADMIN')")`, and exception mappings (`404`, `409`, `422`, plus `DataIntegrityViolationException -> 409` closing the check-then-insert race).
+- **Decisions:**
+  - `UserResponse` cannot leak `passwordHash` — the DTO simply has no such field.
+  - `PageResponse` replaces Spring's `PageImpl` JSON (unstable across framework versions) with the documented envelope.
+  - Deactivation is a command subresource (`POST /{id}/deactivation`), never a status PATCH — lifecycle rules cannot be bypassed.
+  - `@EnableMethodSecurity` turned on endpoint-level authorization; service-level checks remain the second layer.
+
+### Step 5: API tests and the security-exception incident
+
+- **What:** `UserApiTests` — 7 MockMvc tests covering 201/200/409/404/400/403/401, including an explicit assertion that `passwordHash` never appears in responses.
+- **Teaching points:**
+  - `@WithMockUser(roles = "ADMIN")` injects a fake principal (authority `ROLE_ADMIN`) — it tests authorization wiring before real JWT exists.
+  - Each test uses a unique email because tests share one database and JUnit does not guarantee method order.
+- **Incident 3 — the catch-all advice swallowed security exceptions:** the PLANNER-denied test expected `403` and received `500`. `AccessDeniedException` thrown by `@PreAuthorize` inside the controller dispatch reached the catch-all `@ExceptionHandler(Exception.class)`, which converted an authorization denial into a server error. Fix: the advice rethrows `AccessDeniedException`/`AuthenticationException` so Spring Security's `ExceptionTranslationFilter` translates them (`403`/`401`). Security exceptions belong to the security layer, not the MVC error layer.
+- **Verified:** `./mvnw test` passes 11/11.
 
 ## Rules for this guide
 
