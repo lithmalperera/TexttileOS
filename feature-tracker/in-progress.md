@@ -1,6 +1,6 @@
 # In-Progress Features
 
-No application feature is currently in progress. The next backlog item is FND-004 (Local PostgreSQL with Docker Compose).
+No application feature is currently in progress. The next backlog item is FND-005 (Migration, health, error, and OpenAPI foundation).
 
 When implementation begins, move the selected item from `backlog.md` here and record:
 

@@ -36,7 +36,7 @@ These are approved MVP implementation items. They are ordered roughly by depende
 - **Priority:** P0
 - **Depends on:** FND-001, FND-002
 - **Acceptance:** PostgreSQL starts from documented configuration and the backend can connect to it.
-- **Status:** `PLANNED`
+- **Status:** `COMPLETED`
 
 ### FND-005: Migration, Health, Error, and OpenAPI Foundation
 

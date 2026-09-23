@@ -4,7 +4,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/textile}
     username: ${DB_USERNAME:textile}
-    password: ${DB_PASSWORD:textile}
+    password: ${DB_PASSWORD:textile-local-only}
   jpa:
     hibernate:
       ddl-auto: validate

@@ -27,4 +27,9 @@ No application feature has been implemented yet. The following planning mileston
 - **Type:** Foundation feature
 - **Evidence:** Hand-crafted minimal shell (no generated boilerplate): `package.json` (React 19.2.8, Vite 8.2.2, plugin-react 6.1.1 with verified peer pairing, TypeScript 5.9, strict mode), `tsconfig.json`, `vite.config.ts`, `index.html`, `src/main.tsx` with fail-fast root check, `src/App.tsx`. Developer verified all four commands: `npm install`, `npm run dev`, `npm run typecheck`, `npm run build`.
 
+## FND-004: Local PostgreSQL with Docker Compose
+
+- **Type:** Foundation feature
+- **Evidence:** `docker-compose.yml` (postgres:18-alpine, env-interpolated credentials, named volume at the PG18 data path, `pg_isready` healthcheck); `.env.example` template with `.env` git-ignored; Compose commands documented in README. Developer verified: container healthy, database reachable, and `./mvnw spring-boot:run` full startup against PostgreSQL. First failure (SQL State 28P01 password mismatch between backend fallback and database initialization) diagnosed and fixed by aligning defaults; lesson recorded in the learning guide.
+
 When an application feature is complete, add it only after its acceptance criteria, tests, security review, and documentation are finished. Link to the relevant implementation or test paths as evidence.

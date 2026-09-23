@@ -106,6 +106,18 @@ The application is not bootstrapped yet, so there are no build or run commands y
 - `FND-004` adds the Docker Compose database commands.
 - `FND-005` adds migration and verification commands.
 
+### Docker Compose database (FND-004)
+
+```bash
+cp .env.example .env    # local overrides; .env is git-ignored
+docker compose up -d    # start PostgreSQL in the background
+docker compose ps       # confirm the container is healthy
+docker compose down     # stop; data survives in the named volume
+docker compose down -v  # stop AND erase data (full reset)
+```
+
+The backend reads `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` from the environment; the committed defaults match this Compose setup for local development.
+
 Working with the repository right now only requires Git:
 
 ```bash

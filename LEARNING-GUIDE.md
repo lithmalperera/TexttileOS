@@ -152,6 +152,32 @@ The goal: a minimal React 19 + TypeScript + Vite 8 shell with no generated boile
 
 - `npm install`, `npm run dev` (shell visible at localhost:5173), `npm run typecheck`, `npm run build` — all passed.
 
+## FND-004: Local PostgreSQL with Docker Compose (completed)
+
+### `docker-compose.yml`
+
+- **What:** one service, `postgres:18-alpine`, with a healthcheck and a named volume.
+- **Choices:**
+  - Pinned major version instead of `latest` — "latest" changes under your feet; the pinned image is the same for everyone, forever.
+  - `${POSTGRES_PASSWORD:-textile-local-only}` interpolation — Compose reads a git-ignored `.env` (template committed as `.env.example`); defaults are local-only fake values, never real secrets.
+  - Named volume at `/var/lib/postgresql` — the container is disposable, the data is not. Postgres 18's image changed the data path convention; mounting the parent directory is the documented approach.
+  - `pg_isready` healthcheck — reports "ready for queries", not merely "process started".
+- **Learn:** be able to explain the difference between `docker compose down` (keep data) and `docker compose down -v` (erase data), and why `POSTGRES_PASSWORD` only takes effect on first volume initialization.
+
+### The first failure: SQL State 28P01
+
+- **What happened:** the backend failed to start with `FATAL: password authentication failed for user "textile"`.
+- **Diagnosis path:** `28P01` means wrong password; the error surfaced inside `flywayInitializer` because Flyway opens the first connection; the user existed and the network worked, so only the password could disagree.
+- **Root cause:** duplicated defaults disagreed — the Compose default was `textile-local-only`, the backend fallback was `textile`.
+- **Fix:** aligned the backend fallback with the documented database default. An equivalent fix would have been running with `DB_PASSWORD` set — environment always beats defaults.
+- **Learn:** duplicated default values are a bug factory; when they disagree, the failure appears at runtime far from the cause. Read SQL States — they compress the whole diagnosis.
+
+### Verification (developer-run)
+
+- Container healthy via `docker compose ps`; database reachable through `psql`.
+- `./mvnw spring-boot:run` full startup: HikariPool connected, Flyway ran, Hibernate validated an empty schema, Tomcat on 8080.
+- `curl -i http://localhost:8080/api/v1/anything` returns `401` — Spring Security's deny-by-default before any configuration exists.
+
 ## Rules for this guide
 
 - Every completed step gets an entry: what, why, learn.
