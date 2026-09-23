@@ -44,7 +44,7 @@ These are approved MVP implementation items. They are ordered roughly by depende
 - **Priority:** P0
 - **Depends on:** FND-002, FND-004
 - **Acceptance:** Migrations run on a clean database, health responds, errors have one shape, and OpenAPI is available.
-- **Status:** `PLANNED`
+- **Status:** `COMPLETED`
 
 ## Identity and Access
 

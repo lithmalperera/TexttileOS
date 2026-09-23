@@ -32,4 +32,13 @@ No application feature has been implemented yet. The following planning mileston
 - **Type:** Foundation feature
 - **Evidence:** `docker-compose.yml` (postgres:18-alpine, env-interpolated credentials, named volume at the PG18 data path, `pg_isready` healthcheck); `.env.example` template with `.env` git-ignored; Compose commands documented in README. Developer verified: container healthy, database reachable, and `./mvnw spring-boot:run` full startup against PostgreSQL. First failure (SQL State 28P01 password mismatch between backend fallback and database initialization) diagnosed and fixed by aligning defaults; lesson recorded in the learning guide.
 
+## FND-005: Migration, Health, Error, and OpenAPI Foundation
+
+- **Type:** Foundation feature
+- **Evidence:** `V1__baseline.sql` applied on a clean database (`flyway_schema_history` visible via psql); actuator health restricted to the health endpoint (`{"status":"UP"}` public, DB down would report 503); `SecurityConfig` with explicit public paths, deny-all otherwise, and a custom authentication entry point returning 401 (the default returned 403 for anonymous callers — caught by the web foundation test and fixed against the docs/07 contract); `GlobalExceptionHandler` returning RFC 9457 Problem Details with safe 500 responses; springdoc 2.8.17 serving Swagger UI. Developer verified: 4/4 tests, health curl, 401 curl, migration table, Swagger UI.
+
+## Foundation Phase Complete
+
+`FND-001` through `FND-005` are complete: version-controlled repository, buildable backend shell, buildable frontend shell, containerized PostgreSQL, and the operational foundation (migrations, health, error contract, API documentation). The next phase is identity and access.
+
 When an application feature is complete, add it only after its acceptance criteria, tests, security review, and documentation are finished. Link to the relevant implementation or test paths as evidence.

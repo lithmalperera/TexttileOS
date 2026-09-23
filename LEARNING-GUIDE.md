@@ -178,6 +178,44 @@ The goal: a minimal React 19 + TypeScript + Vite 8 shell with no generated boile
 - `./mvnw spring-boot:run` full startup: HikariPool connected, Flyway ran, Hibernate validated an empty schema, Tomcat on 8080.
 - `curl -i http://localhost:8080/api/v1/anything` returns `401` — Spring Security's deny-by-default before any configuration exists.
 
+## FND-005: Migration, health, error, and OpenAPI foundation (completed)
+
+### `V1__baseline.sql`
+
+- **What:** the first Flyway migration. Contains no business tables — it establishes the mechanism and the naming convention (`V<version>__<description>.sql`).
+- **Why:** migrations run once, in order, and are checksummed. Editing an applied migration fails validation; changing schema means a new migration. The schema history becomes append-only — the same philosophy the inventory ledger will use.
+- **Learn:** be able to explain what `flyway_schema_history` records: version, description, checksum, timestamps, and who/what ran it.
+
+### Actuator health
+
+- **What:** a production-grade health probe at `/actuator/health`.
+- **Choices:** exposure restricted to `health` only (Actuator can also expose shutdown, heap dumps, and env — all dangerous if left open); `show-details: never` keeps internals out of responses.
+- **Learn:** health flips to `503` when any checked component (like the database) fails — this is the signal Docker healthchecks and CI pipelines watch.
+
+### `SecurityConfig` and the 401/403 incident
+
+- **What:** the first explicit `SecurityFilterChain`: a small public-path list, everything else `authenticated()`, CSRF disabled per the stateless bearer-token design.
+- **Incident:** the web foundation test expected `401` for an anonymous call to a protected path and received `403`. Defining a custom chain removed Boot's default mechanisms, and with no mechanism configured Spring fell back to `Http403ForbiddenEntryPoint`.
+- **Fix:** an explicit authentication entry point returning `401`, matching the docs/07 contract.
+- **Learn:** **401 = not authenticated, 403 = authenticated but forbidden.** The entry point answers 401; the access-denied handler answers 403. Confusing them leaks information — a 403 on an unknown resource confirms it exists.
+
+### `GlobalExceptionHandler`
+
+- **What:** one `@RestControllerAdvice` producing RFC 9457 `ProblemDetail` errors: field-level detail for validation failures, a generic body for unexpected exceptions.
+- **Why:** the API contract (docs/07) promises one error shape; stack traces and SQL go to logs, never to clients.
+- **Learn:** the catch-all `Exception` handler is a safety net, not a design — specific domain exceptions will get specific handlers as modules grow.
+
+### springdoc OpenAPI
+
+- **What:** Swagger UI at `/swagger-ui.html`, generated from the code (springdoc 2.8.17 — the line supporting Boot 3.5; 3.x targets Boot 4).
+- **Why:** documentation that cannot drift from the implementation, because it is generated from it.
+- **Learn:** OpenAPI is a contract review artifact here, not decoration — every module endpoint added later appears here automatically.
+
+### Verification (developer-run)
+
+- `./mvnw test` — 4/4 (context load, main-class bean, health public, protected path 401).
+- Runtime: health `{"status":"UP"}`, anonymous API call `401`, `flyway_schema_history` present in psql, Swagger UI reachable.
+
 ## Rules for this guide
 
 - Every completed step gets an entry: what, why, learn.

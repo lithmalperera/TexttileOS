@@ -106,6 +106,18 @@ The application is not bootstrapped yet, so there are no build or run commands y
 - `FND-004` adds the Docker Compose database commands.
 - `FND-005` adds migration and verification commands.
 
+### Migration, health, and API documentation (FND-005)
+
+```bash
+./mvnw test                                  # backend tests (context + web foundation)
+./mvnw spring-boot:run                       # start backend; applies Flyway migrations first
+```
+
+- Health: `http://localhost:8080/actuator/health`
+- API docs: `http://localhost:8080/swagger-ui.html`
+- Tables: `docker compose exec postgres psql -U textile -d textile -c '\dt'` shows `flyway_schema_history` plus business tables as migrations are added
+- Anything under `/api/**` stays `401` until real authentication exists (IAM phase)
+
 ### Docker Compose database (FND-004)
 
 ```bash
