@@ -47,6 +47,15 @@ No domain workflow feature has been completed yet. The following planning and fo
 - **Type:** Domain feature (Identity)
 - **Evidence:** `V2__identity_users_and_roles.sql` (fixed seeded roles, dual email columns, composite user_role key, status check); `AppUser` domain model with register/deactivate invariants; `UserService` with BCrypt, transaction boundaries, and typed exceptions; `UserController` with DTO validation, 201/Location, admin-only `@PreAuthorize`, and `PageResponse` pagination; `GlobalExceptionHandler` mappings for 404/409/422 plus the security-exception rethrow fix (catch-all advice previously converted authorization denials into 500s — caught by `UserApiTests`). Developer verified: `./mvnw test` passes 11/11 against the Testcontainers PostgreSQL base.
 
+## IAM-002: JWT Login and Server-Side Authorization
+
+- **Type:** Domain feature (Identity)
+- **Evidence:** jjwt 0.13.0 with `JwtProperties` (env-provided secret, issuer, 15-minute expiry); `JwtTokenService` (issue/parse with signature, issuer, and expiry validation); `AuthenticationService` with generic `InvalidCredentialsException` (no user enumeration); `AuthController` (`POST /api/v1/auth/login` public, `GET /api/v1/auth/me` authenticated); `V3__seed_admin_user.sql` bootstrap admin; `JwtAuthenticationFilter` wired before the auth filter chain with `STATELESS` sessions; `AuthenticatedUserProvider` port implemented by `DatabaseAuthenticatedUserProvider` so tokens reload authoritative active status and roles from the database on every request (revocation without waiting for token expiry). Tests: `AuthApiTests` (login contract, identical 401 for unknown email/wrong password, real-token protected access, tampered token, deactivation revocation) and `JwtTokenServiceTests` (roundtrip, second-granularity expiry per RFC 7519, zero-expiry rejection). Developer verified: `./mvnw test` passes 19/19; manual curl login, `/me`, and `/users` with Bearer token returned 200.
+
+## Identity Phase Complete
+
+`IAM-001` and `IAM-002` are complete: administrator user management, BCrypt credentials, JWT login, token validation filter, and role-based authorization enforced by endpoint and service layers with automated evidence.
+
 ## Foundation Phase Complete
 
 `FND-001` through `FND-005` are complete: version-controlled repository, buildable backend shell, buildable frontend shell, containerized PostgreSQL, and the operational foundation (migrations, health, error contract, API documentation). The next phase is identity and access.

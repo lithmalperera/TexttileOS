@@ -1,6 +1,6 @@
 # In-Progress Features
 
-No application feature is currently in progress. The next backlog item is IAM-002 (JWT login and server-side authorization).
+No application feature is currently in progress. The next backlog item is CAT-001 (Products and Materials), the start of the Catalog area.
 
 When implementation begins, move the selected item from `backlog.md` here and record:
 

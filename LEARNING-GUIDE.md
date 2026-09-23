@@ -281,6 +281,49 @@ The original design described ten broad business areas. That was intentionally r
 - **Incident 3 — the catch-all advice swallowed security exceptions:** the PLANNER-denied test expected `403` and received `500`. `AccessDeniedException` thrown by `@PreAuthorize` inside the controller dispatch reached the catch-all `@ExceptionHandler(Exception.class)`, which converted an authorization denial into a server error. Fix: the advice rethrows `AccessDeniedException`/`AuthenticationException` so Spring Security's `ExceptionTranslationFilter` translates them (`403`/`401`). Security exceptions belong to the security layer, not the MVC error layer.
 - **Verified:** `./mvnw test` passes 11/11.
 
+## IAM-002: JWT login and server-side authorization (in progress)
+
+### Step 1: token infrastructure
+
+- **What:** `jjwt` 0.13.0 dependency (api/impl/jackson split), `JwtProperties` (`app.security.jwt.*` with `JWT_SECRET` env override, 15-minute expiry), and `JwtTokenService` (issue + parse).
+- **Decisions:**
+  - jjwt instead of Spring's `oauth2-resource-server` — explicit token handling over deep abstraction for a security-showcase project; resource-server reconsidered for real multi-service deployments.
+  - HMAC with an environment-provided secret; `Keys.hmacShaKeyFor` enforces the 256-bit minimum at startup.
+  - Claims: `sub` (user UUID), `roles` (client display only), `iss`, `iat`, `exp`.
+- **Verified:** `./mvnw test` 11/11 with the new beans in the context.
+
+### Step 2: login flow and bootstrap admin
+
+- **What:** `AuthenticationService.authenticate` (normalize → find → BCrypt match → active check → user), `AuthController` (`POST /api/v1/auth/login`, `GET /api/v1/auth/me`), `LoginRequest`/`LoginResponse` DTOs, `InvalidCredentialsException` mapped to a Problem Detail `401`, `V3__seed_admin_user.sql` (bootstrap admin with BCrypt hash, fixed UUID), and `/api/v1/auth/login` added to the public-path list.
+- **Decisions:**
+  - Every failure (unknown email, wrong password, inactive account) throws the same `InvalidCredentialsException` — no user enumeration.
+  - The `401` for bad credentials is produced by the advice (a business failure on a public endpoint); the rethrow pattern stays reserved for framework security exceptions.
+  - The admin seed is migration-owned like the role seed; the committed password is a documented local-only value that must be rotated or removed before real deployment.
+  - `issueToken` now returns an `IssuedToken` record (token + `expiresAt`) so the response can tell the client when re-login is needed.
+- **Observed detail:** the issued token's header shows `alg: HS384`, not HS256 — jjwt selects the *strongest HMAC variant the key material supports*; the local default secret is long enough for 384 bits. Compatible with the documented HMAC design; a production secret choice may pin the algorithm explicitly.
+- **Verified:** developer ran `curl` login — `200` with `accessToken`, `expiresAt`, and the user DTO (`passwordHash` absent); wrong password returns `401`.
+- **Not yet possible:** `GET /auth/me` and protected endpoints still return `401` even with a valid token, because no filter reads the `Authorization` header yet. That is Step 3.
+
+### Step 3: the JWT authentication filter
+
+- **What:** `JwtAuthenticationFilter` (OncePerRequestFilter), `AuthenticatedUserProvider` port + `AuthenticatedUser` record, `DatabaseAuthenticatedUserProvider` implementation, and `SecurityConfig` wiring with `STATELESS` sessions and `addFilterBefore`.
+- **Decisions:**
+  - Dependency inversion: `common/security` defines the provider interface; `identity` implements it with the repository. The filter never touches entities — `common` stays technical-only.
+  - Three filter paths: no/invalid header passes through anonymously (protected routes get `401` from the entry point); invalid/expired tokens clear the context and continue (`401`, never `500` — invalid client input is not a server error); valid tokens load the user and populate the context.
+  - Roles are reloaded from the database per request; the token's `roles` claim is display-only. `DatabaseAuthenticatedUserProvider` filters `INACTIVE`, so a deactivated user's still-valid token immediately stops working — revocation without waiting for expiry.
+  - `AuthenticatedUser implements UserDetails` so `getName()` returns the user UUID and authorities are `ROLE_*`.
+  - The filter is constructed inside `SecurityConfig`, not registered as a bean — a filter bean would also be auto-registered for all servlet requests and run twice.
+  - `SessionCreationPolicy.STATELESS` — no `JSESSIONID`; every request authenticates independently.
+- **Compile lesson:** `List<SimpleGrantedAuthority>` cannot be assigned to `List<GrantedAuthority>` (generics invariance) — the override declares the subtype list, which is covariantly compatible with the interface's `Collection<? extends GrantedAuthority>`.
+
+### Step 4: real-token tests
+
+- **What:** `AuthApiTests` (6 tests through real HTTP login → token → Bearer headers, no `@WithMockUser`) and `JwtTokenServiceTests` (2 unit tests).
+- **Key tests:** identical `401` for unknown email and wrong password (anti-enumeration, asserted); tampered token rejected; the **revocation test** — planner's valid token stops working immediately after admin deactivation; expired-token test uses a 0-minute configuration instead of sleeping in the test.
+- **Incident — expiry precision:** the roundtrip test compared expiry microseconds-for-microseconds and failed: RFC 7519 stores time claims as NumericDate *seconds*. The token was correct; the assertion was wrong. Assert at the precision the standard actually guarantees (`truncatedTo(ChronoUnit.SECONDS)`).
+- **Verified:** `./mvnw test` passes 19/19; developer confirmed end-to-end with curl: login → `200` with token, `/me` and `/users` with Bearer → `200`, corrupted token → `401`.
+- **Known noise:** the "generated security password" warning appears only in the test context (Spring's unused in-memory default user); optional cleanup is to exclude `UserDetailsServiceAutoConfiguration` in tests or provide a `UserDetailsService` bean.
+
 ## Rules for this guide
 
 - Every completed step gets an entry: what, why, learn.

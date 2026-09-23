@@ -29,6 +29,13 @@ management:
     health:
       show-details: never
 
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:local-development-only-secret-change-me-0123456789}
+      issuer: textile-manufacturing
+      expiry-minutes: 15
+
 logging:
   level:
     root: INFO

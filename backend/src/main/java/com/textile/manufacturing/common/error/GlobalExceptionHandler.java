@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.textile.manufacturing.identity.service.DuplicateEmailException;
+import com.textile.manufacturing.identity.service.InvalidCredentialsException;
 import com.textile.manufacturing.identity.service.UnknownRoleException;
 import com.textile.manufacturing.identity.service.UserNotFoundException;
 
@@ -35,6 +36,11 @@ public class GlobalExceptionHandler {
         problem.setTitle("Validation failed");
         problem.setProperty("fieldErrors", fieldErrors);
         return problem;
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    ProblemDetail handleInvalidCredentials(InvalidCredentialsException exception) {
+        return problem(HttpStatus.UNAUTHORIZED, "Unauthorized", exception.getMessage());
     }
 
     @ExceptionHandler(UserNotFoundException.class)

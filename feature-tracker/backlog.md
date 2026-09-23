@@ -52,7 +52,7 @@ This is the reduced MVP backlog. It prioritizes one complete manufacturing workf
 - **Priority:** P0
 - **Depends on:** IAM-001
 - **Acceptance:** Valid users receive short-lived JWTs; active roles control protected operations.
-- **Status:** `PLANNED`
+- **Status:** `COMPLETED`
 
 ## Catalog
 
