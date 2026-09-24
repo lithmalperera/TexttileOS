@@ -56,6 +56,11 @@ No domain workflow feature has been completed yet. The following planning and fo
 
 `IAM-001` and `IAM-002` are complete: administrator user management, BCrypt credentials, JWT login, token validation filter, and role-based authorization enforced by endpoint and service layers with automated evidence.
 
+## CAT-001: Products and Materials
+
+- **Type:** Domain feature (Catalog)
+- **Evidence:** `V4__catalog_products_and_materials.sql` (dual code columns, status checks, unit CHECK constraints, status indexes); `Product`/`Material` domain models with register/update/archive invariants and separate unit enums; `ProductService`/`MaterialService` with duplicate checks and status filtering; full REST API (`/api/v1/products`, `/api/v1/materials`) with DTO validation, role-gated writes (ADMIN/PLANNER), command-subresource archival, and OpenAPI bearer scheme (Authorize button); `IllegalStateException -> 409` and malformed-body/type-mismatch -> `400` error mappings. Tests: `CatalogDomainTests` (entity state machine) and `CatalogApiTests` (real-token CRUD, duplicate 409, immutable code, archive one-way, invalid enum 400, operator-role 403, material duplication). Developer verified: `./mvnw test` passes 30/30 and manual Swagger flow created the first product end-to-end.
+
 ## Foundation Phase Complete
 
 `FND-001` through `FND-005` are complete: version-controlled repository, buildable backend shell, buildable frontend shell, containerized PostgreSQL, and the operational foundation (migrations, health, error contract, API documentation). The next phase is identity and access.

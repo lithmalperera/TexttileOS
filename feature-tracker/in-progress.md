@@ -1,6 +1,6 @@
 # In-Progress Features
 
-No application feature is currently in progress. The next backlog item is CAT-001 (Products and Materials), the start of the Catalog area.
+No application feature is currently in progress. The next backlog item is BOM-001 (Simple active BOM and snapshot calculation).
 
 When implementation begins, move the selected item from `backlog.md` here and record:
 

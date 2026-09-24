@@ -9,10 +9,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import com.textile.manufacturing.catalog.material.service.DuplicateMaterialCodeException;
+import com.textile.manufacturing.catalog.material.service.MaterialNotFoundException;
+import com.textile.manufacturing.catalog.product.service.DuplicateProductCodeException;
+import com.textile.manufacturing.catalog.product.service.ProductNotFoundException;
 import com.textile.manufacturing.identity.service.DuplicateEmailException;
 import com.textile.manufacturing.identity.service.InvalidCredentialsException;
 import com.textile.manufacturing.identity.service.UnknownRoleException;
@@ -38,9 +44,35 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    ProblemDetail handleIllegalState(IllegalStateException exception) {
+        return problem(HttpStatus.CONFLICT, "Invalid state", exception.getMessage());
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ProblemDetail handleUnreadableBody(HttpMessageNotReadableException exception) {
+        return problem(HttpStatus.BAD_REQUEST, "Invalid request", "Request body is missing or malformed.");
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException exception) {
+        return problem(HttpStatus.BAD_REQUEST, "Invalid parameter",
+            "Parameter '%s' has an invalid value.".formatted(exception.getName()));
+    }
+
     @ExceptionHandler(InvalidCredentialsException.class)
     ProblemDetail handleInvalidCredentials(InvalidCredentialsException exception) {
         return problem(HttpStatus.UNAUTHORIZED, "Unauthorized", exception.getMessage());
+    }
+
+    @ExceptionHandler({ProductNotFoundException.class, MaterialNotFoundException.class})
+    ProblemDetail handleCatalogNotFound(RuntimeException exception) {
+        return problem(HttpStatus.NOT_FOUND, "Not found", exception.getMessage());
+    }
+
+    @ExceptionHandler({DuplicateProductCodeException.class, DuplicateMaterialCodeException.class})
+    ProblemDetail handleDuplicateCatalogCode(RuntimeException exception) {
+        return problem(HttpStatus.CONFLICT, "Duplicate resource", exception.getMessage());
     }
 
     @ExceptionHandler(UserNotFoundException.class)

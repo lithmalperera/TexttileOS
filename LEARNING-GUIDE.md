@@ -324,6 +324,38 @@ The original design described ten broad business areas. That was intentionally r
 - **Verified:** `./mvnw test` passes 19/19; developer confirmed end-to-end with curl: login → `200` with token, `/me` and `/users` with Bearer → `200`, corrupted token → `401`.
 - **Known noise:** the "generated security password" warning appears only in the test context (Spring's unused in-memory default user); optional cleanup is to exclude `UserDetailsServiceAutoConfiguration` in tests or provide a `UserDetailsService` bean.
 
+## CAT-001: Products and materials (completed)
+
+### Step 1: `V4__catalog_products_and_materials.sql`
+
+- **What:** `product` and `material` tables with dual code columns, status/archive fields, and unit CHECK constraints.
+- **Why:** archive instead of delete (referenced records stay readable), normalized code for case-insensitive uniqueness, database as backstop for the documented unit set.
+- **Verified:** developer saw both tables after startup.
+
+### Step 2: entities and repositories
+
+- **What:** `Product`/`Material` entities under `catalog/product` and `catalog/material`, two status enums, two unit enums, minimal repositories.
+- **Why:** separate output-unit and base-unit enums instead of one shared `Unit` — product outputs and material inputs are different concepts that merely overlap today.
+- **Verified:** `./mvnw test` 19/19 (mappings validated against `V4`).
+
+### Step 3: services and grouped error mapping
+
+- **What:** `ProductService`/`MaterialService`, typed exceptions, grouped handlers (`404`, `409`).
+- **Why:** two small services keep each aggregate's ownership clear; the unique index remains the race referee behind the friendly duplicate check.
+
+### Step 4: REST API and the enum-binding lesson
+
+- **What:** `ProductController`/`MaterialController` with DTOs, role-gated writes, command-subresource archival, and the `OpenApiConfig` bearer scheme.
+- **Discovery:** Swagger UI had no Authorize button until the OpenAPI document declared a bearer security scheme — springdoc scans controllers, not security config.
+- **Incident:** the first DTO version held the unit as a `String` and converted with `valueOf` in the controller — an invalid unit (`INCHES`) threw `IllegalArgumentException` deep inside the app and returned `500`. Fix: bind the enum directly in the DTO; unknown names fail at the JSON boundary through the `HttpMessageNotReadableException` handler with a clean `400`. Type-safe binding beats manual conversion.
+- **Second lesson:** the GET-read test initially forgot the `Authorization` header and received `401` — correct API, wrong test. Every endpoint requires authentication, including reads.
+
+### Step 5: tests
+
+- **What:** `CatalogDomainTests` (entity state machine without HTTP/DB) and `CatalogApiTests` (real-token CRUD, duplicates, immutable code, one-way archive, role matrix, invalid enum).
+- **Also fixed:** updating an archived product threw `IllegalStateException` which would have surfaced as `500`; it is a domain conflict, now mapped to `409 Invalid state`.
+- **Verified:** `./mvnw test` passes 30/30; developer created the first product through Swagger UI with a real login.
+
 ## Rules for this guide
 
 - Every completed step gets an entry: what, why, learn.

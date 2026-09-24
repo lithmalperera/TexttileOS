@@ -62,7 +62,7 @@ This is the reduced MVP backlog. It prioritizes one complete manufacturing workf
 - **Priority:** P0
 - **Depends on:** IAM-002
 - **Acceptance:** Authorized users can create, validate, inspect, update, and archive products and materials.
-- **Status:** `PLANNED`
+- **Status:** `COMPLETED`
 
 ### BOM-001: Simple Active BOM and Snapshot Calculation
 
