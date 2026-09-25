@@ -1,6 +1,6 @@
 # In-Progress Features
 
-No application feature is currently in progress. The next backlog item is BOM-001 (Simple active BOM and snapshot calculation).
+No application feature is currently in progress. The next backlog item is INV-001 (Stock balances and movement ledger).
 
 When implementation begins, move the selected item from `backlog.md` here and record:
 

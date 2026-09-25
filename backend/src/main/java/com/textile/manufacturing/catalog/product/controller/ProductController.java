@@ -27,6 +27,8 @@ import com.textile.manufacturing.common.web.PageResponse;
 
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
+
 @RestController
 @RequestMapping("/api/v1/products")
 public class ProductController {
@@ -40,7 +42,7 @@ public class ProductController {
     @GetMapping
     PageResponse<ProductResponse> listProducts(
         @RequestParam(required = false) ProductStatus status,
-        @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return PageResponse.of(productService.listProducts(status, pageable), ProductResponse::from);
     }
 

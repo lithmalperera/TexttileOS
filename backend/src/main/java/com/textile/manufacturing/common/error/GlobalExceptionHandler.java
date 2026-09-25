@@ -5,8 +5,10 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import com.textile.manufacturing.catalog.bom.service.BomMaterialUnavailableException;
+import com.textile.manufacturing.catalog.bom.service.BomNotFoundException;
 import com.textile.manufacturing.catalog.material.service.DuplicateMaterialCodeException;
 import com.textile.manufacturing.catalog.material.service.MaterialNotFoundException;
 import com.textile.manufacturing.catalog.product.service.DuplicateProductCodeException;
@@ -44,6 +48,11 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    ProblemDetail handleIllegalArgument(IllegalArgumentException exception) {
+        return problem(HttpStatus.BAD_REQUEST, "Invalid request", exception.getMessage());
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     ProblemDetail handleIllegalState(IllegalStateException exception) {
         return problem(HttpStatus.CONFLICT, "Invalid state", exception.getMessage());
@@ -60,14 +69,26 @@ public class GlobalExceptionHandler {
             "Parameter '%s' has an invalid value.".formatted(exception.getName()));
     }
 
+    @ExceptionHandler(PropertyReferenceException.class)
+    ProblemDetail handleInvalidSortProperty(PropertyReferenceException exception) {
+        return problem(HttpStatus.BAD_REQUEST, "Invalid sort",
+            "Cannot sort by '%s'.".formatted(exception.getPropertyName()));
+    }
+
     @ExceptionHandler(InvalidCredentialsException.class)
     ProblemDetail handleInvalidCredentials(InvalidCredentialsException exception) {
         return problem(HttpStatus.UNAUTHORIZED, "Unauthorized", exception.getMessage());
     }
 
-    @ExceptionHandler({ProductNotFoundException.class, MaterialNotFoundException.class})
+    @ExceptionHandler({ProductNotFoundException.class, MaterialNotFoundException.class,
+        BomNotFoundException.class})
     ProblemDetail handleCatalogNotFound(RuntimeException exception) {
         return problem(HttpStatus.NOT_FOUND, "Not found", exception.getMessage());
+    }
+
+    @ExceptionHandler(BomMaterialUnavailableException.class)
+    ProblemDetail handleBomMaterialUnavailable(BomMaterialUnavailableException exception) {
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid reference", exception.getMessage());
     }
 
     @ExceptionHandler({DuplicateProductCodeException.class, DuplicateMaterialCodeException.class})

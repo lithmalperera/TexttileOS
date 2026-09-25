@@ -21,6 +21,45 @@ Each feature goes through the same loop:
 
 We always build a stable foundation before adding behavior on top of it.
 
+## How Spring finds the right class for an HTTP request
+
+There are two separate moments: what Spring learns **at startup**, and what it looks up **per request**.
+
+### At startup
+
+1. **Component scan.** `@SpringBootApplication` scans every class under the root package. Classes with `@RestController`, `@Service`, `@Repository`, `@Component` are instantiated once and registered in the application context. Configuration classes are read for their `@Bean` methods.
+2. **The URL map.** Spring reads every controller's mapping annotations and builds one routing table:
+   - `@RequestMapping("/api/v1/products")` on the class is a prefix.
+   - Each method's `@PostMapping`/`@GetMapping`/`@PatchMapping` completes a row: `POST /api/v1/products -> ProductController.createProduct`.
+   - This table is built once. A duplicate URL+method in two controllers fails at startup ("ambiguous mapping"), not at request time.
+3. **The filter chain is assembled** from `SecurityConfig`: JWT filter, authorization checks, the 401 entry point.
+4. **Constructor wiring happens now**, not at request time: `ProductController` declares `ProductService` in its constructor, so Spring hands the service instance to the controller when both are created.
+
+### When a request arrives
+
+```text
+Tomcat receives bytes on port 8080
+  -> Security FILTER chain runs BEFORE controllers:
+       JwtAuthenticationFilter reads the Bearer token, verifies it,
+       loads the user from the database, records the user/roles
+       in the per-request SecurityContext (or records "anonymous")
+  -> DispatcherServlet (the single front door) asks the URL map:
+       "who handles POST /api/v1/products?"
+  -> Authorization check: @PreAuthorize evaluated against the recorded role;
+       wrong role -> 403, the method never runs
+  -> Argument preparation: @RequestBody converts JSON to the DTO,
+       @Valid checks @NotBlank/@Size; failures -> GlobalExceptionHandler -> 400
+  -> the controller method runs: Controller -> Service -> Repository -> DB
+  -> Jackson converts the response DTO back to JSON; status + headers applied
+```
+
+Key points:
+
+- Routing is a **dictionary lookup**, not code searching for classes.
+- Method calls between layers are **constructor injection** — fixed wiring from startup, never runtime searching.
+- Dependencies point one way only: `Controller -> Service -> Repository -> Entity`. That is why a service can be tested without HTTP.
+- A `@PathVariable UUID productId` is filled before the method runs; a non-UUID value fails there with `400` — the method body never executes.
+
 ## Milestone: Documentation baseline (completed)
 
 Before any code, the project wrote ten design documents in `docs/`. This is deliberate.
@@ -355,6 +394,48 @@ The original design described ten broad business areas. That was intentionally r
 - **What:** `CatalogDomainTests` (entity state machine without HTTP/DB) and `CatalogApiTests` (real-token CRUD, duplicates, immutable code, one-way archive, role matrix, invalid enum).
 - **Also fixed:** updating an archived product threw `IllegalStateException` which would have surfaced as `500`; it is a domain conflict, now mapped to `409 Invalid state`.
 - **Verified:** `./mvnw test` passes 30/30; developer created the first product through Swagger UI with a real login.
+
+## BOM-001: Simple active BOM and snapshot calculation (completed)
+
+### Step 1: `V5__catalog_bom.sql`
+
+- **What:** `bom` (one per product, enforced by `UNIQUE product_id`) and `bom_item` (unique material per BOM, positive-quantity check).
+- **Learn:** the "one BOM per product" business rule is a database constraint, not just a service check — it holds even under concurrent requests.
+
+### Incident: the missing `version` column and the immutability rule
+
+- **What happened:** the `Bom` entity declared `@Version`, but `V5` had no `version` column. `ddl-auto: validate` failed at context load, and 24 test errors cascaded from that one root cause.
+- **Lesson 1:** when a run explodes, find the FIRST error; the rest are echoes.
+- **Lesson 2:** applied migrations are immutable — `V5` had already run, so the fix was a new `V6` (add the column), never an edit to `V5`. This is exactly what the checksum rule protects.
+
+### Step 2: parent-child entities
+
+- **What:** `Bom` with `@OneToMany(mappedBy="bom", cascade=ALL, orphanRemoval=true)` and `BomItem` with `@ManyToOne` back-reference.
+- **Decisions:** product/material referenced by plain UUID (aggregates reference by identity, not object graphs); quantity as `BigDecimal` mapped to `numeric(19,6)`; the formula `requiredQuantityFor(quantity)` lives on the item.
+
+### Step 3: service with smart replace
+
+- **What:** `BomService` — get-or-create, active-material validation, replace, calculation, and view composition (joining material names/units because the entity stores only IDs).
+
+### Incident: delete+insert of the same key violates the unique constraint
+
+- **What happened:** replacing an existing line with the SAME material deleted the old row and inserted a new one; Hibernate ran the INSERT before the DELETE, so both rows briefly existed — the `UNIQUE (bom_id, material_id)` constraint rejected it, surfacing as `409 Duplicate resource`.
+- **Fix:** replace now *updates quantities in place* for existing materials (`updateQuantityFor`) and only adds truly new lines (`retainMaterials` removes the dropped ones). A regression test covers exactly this case.
+- **Learn:** "replace" on a constrained child collection should be a diff, not clear-and-recreate.
+
+### Incident: quantity scale inconsistency
+
+- **What happened:** the API returned `"1.5"` for a fresh line but `"1.500000"` for a DB-loaded one — the JSON BigDecimal kept its input scale. Fixed by normalizing to scale 6 in the domain (`setScale(6, UNNECESSARY)`; the DTO's `@Digits(fraction = 6)` guarantees this never loses precision). Matches `BR-QTY-005`.
+
+### Step 4: API and the Pageable documentation saga
+
+- **What:** `GET/PUT /products/{id}/bom` and `POST /bom-calculations`; decimals serialized as strings per the API contract.
+- **Incident:** Swagger could not page correctly — springdoc documented the Pageable parameters as one combined JSON object, so Swagger sent `sort=["createdAt,desc"]` with literal brackets; Spring received the property `["createdAt` and failed. Two fixes: `@ParameterObject` on `Pageable` (separate, clean parameters — the root cause) and a `PropertyReferenceException -> 400 Invalid sort` mapping (the safety net). Also learned: a "still failing after the fix" may mean the OLD app instance is still serving the port.
+
+### Step 5: tests
+
+- **What:** `BomDomainTests` (3) and `BomApiTests` (8) — including same-material quantity update, empty BOM rejection, archived-material rejection, and the 100-shirts calculation.
+- **Verified:** 41/41 green; manual and diagnostic curl confirmed the full flow.
 
 ## Rules for this guide
 

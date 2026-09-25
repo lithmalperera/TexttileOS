@@ -27,6 +27,8 @@ import com.textile.manufacturing.common.web.PageResponse;
 
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
+
 @RestController
 @RequestMapping("/api/v1/materials")
 public class MaterialController {
@@ -40,7 +42,7 @@ public class MaterialController {
     @GetMapping
     PageResponse<MaterialResponse> listMaterials(
         @RequestParam(required = false) MaterialStatus status,
-        @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return PageResponse.of(materialService.listMaterials(status, pageable), MaterialResponse::from);
     }
 

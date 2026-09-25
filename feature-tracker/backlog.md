@@ -70,7 +70,7 @@ This is the reduced MVP backlog. It prioritizes one complete manufacturing workf
 - **Priority:** P0
 - **Depends on:** CAT-001
 - **Acceptance:** One active single-level BOM calculates requirements and is copied into production requirements.
-- **Status:** `PLANNED`
+- **Status:** `COMPLETED`
 
 ## Inventory
 
