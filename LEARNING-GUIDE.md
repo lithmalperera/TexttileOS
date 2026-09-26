@@ -437,6 +437,35 @@ The original design described ten broad business areas. That was intentionally r
 - **What:** `BomDomainTests` (3) and `BomApiTests` (8) — including same-material quantity update, empty BOM rejection, archived-material rejection, and the 100-shirts calculation.
 - **Verified:** 41/41 green; manual and diagnostic curl confirmed the full flow.
 
+## INV-001: Stock balances and movement ledger (completed)
+
+### Step 1: `V7__inventory_core.sql`
+
+- **What:** five tables — `stock_location` (seeded MAIN), `inventory_item` (stock identity for a material OR a product, enforced by a shape CHECK), `stock_balance` (current on-hand/reserved, non-negative checks, `@Version`), `inventory_transaction` (one business operation: who/when/why/reference), `inventory_movement` (per-item deltas belonging to a transaction).
+- **Decisions:** partial unique indexes (`WHERE material_id IS NOT NULL`) because standard unique constraints treat NULLs as distinct; deltas instead of resulting values so history explains itself; the ledger is append-only — corrections are compensating entries.
+- **Learn:** one ledger serves both material receipts and future finished-product receipts with real foreign keys — no polymorphic table-name tricks.
+
+### Step 2: entities
+
+- **What:** `StockBalance` (all stock arithmetic + invariants), `InventoryTransaction` owning its movements (cascade), `InventoryMovement` with no mutation methods, `InventoryItem` with two factories.
+- **Learn:** append-only expressed in the type system — the code cannot edit history because history has no setters.
+
+### Step 3: service and the module boundary in action
+
+- **What:** `InventoryService.receiveMaterial/adjustMaterialStock/getMaterialBalance`.
+- **Decisions:** Inventory asks Catalog through `MaterialService.requireActiveMaterial(...)` and receives a `MaterialSummary` record — never a Material entity, never its repository. Item and balance are created on first receipt (lazy initialization). Balance change, transaction, and movement commit in one `@Transactional`.
+- **Compiler lesson:** the service needed scale normalization for movement deltas; instead of making the entity helper public, the responsibility moved to `InventoryTransaction.addMovement` — the right owner (movements are the permanent records).
+
+### Step 4: API
+
+- **What:** receipts/adjustments (ADMIN, INVENTORY_MANAGER) and read-only balances/movements; actor captured via `@AuthenticationPrincipal AuthenticatedUser` from the JWT principal.
+- **Verified by hand:** receipt (+100 "PO #42 delivery"), adjustment (-10 "Damaged roll removed"), and the movement history showing both entries newest-first with correct deltas.
+
+### Step 5: tests
+
+- **What:** `InventoryDomainTests` (5 — reserve checks available, not on-hand; consume reduces both; release cannot exceed reserved) and `InventoryApiTests` (7 — accumulation, ledger consistency, below-zero rejection, archived-material rejection, role matrix, empty history).
+- **Verified:** 53/53 green.
+
 ## Rules for this guide
 
 - Every completed step gets an entry: what, why, learn.

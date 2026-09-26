@@ -60,6 +60,33 @@ public class MaterialService {
         return material;
     }
 
+    public record MaterialSummary(
+        UUID id, String code, String name, String baseUnit, String status) {
+
+        public static MaterialSummary from(Material material) {
+            return new MaterialSummary(
+                material.getId(),
+                material.getCode(),
+                material.getName(),
+                material.getBaseUnit().name(),
+                material.getStatus().name());
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public MaterialSummary requireActiveMaterial(UUID materialId) {
+        Material material = findMaterial(materialId);
+        if (material.getStatus() != MaterialStatus.ACTIVE) {
+            throw new MaterialNotActiveException(materialId);
+        }
+        return MaterialSummary.from(material);
+    }
+
+    @Transactional(readOnly = true)
+    public MaterialSummary getMaterialSummary(UUID materialId) {
+        return MaterialSummary.from(findMaterial(materialId));
+    }
+
     private Material findMaterial(UUID materialId) {
         return materialRepository.findById(materialId).orElseThrow(() -> new MaterialNotFoundException(materialId));
     }

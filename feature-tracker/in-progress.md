@@ -1,6 +1,6 @@
 # In-Progress Features
 
-No application feature is currently in progress. The next backlog item is INV-001 (Stock balances and movement ledger).
+No application feature is currently in progress. The next backlog item is INV-002 (Atomic reservations and release) — the concurrency milestone.
 
 When implementation begins, move the selected item from `backlog.md` here and record:
 

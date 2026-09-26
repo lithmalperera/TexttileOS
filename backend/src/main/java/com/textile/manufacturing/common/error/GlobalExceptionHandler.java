@@ -21,12 +21,14 @@ import com.textile.manufacturing.catalog.bom.service.BomMaterialUnavailableExcep
 import com.textile.manufacturing.catalog.bom.service.BomNotFoundException;
 import com.textile.manufacturing.catalog.material.service.DuplicateMaterialCodeException;
 import com.textile.manufacturing.catalog.material.service.MaterialNotFoundException;
+import com.textile.manufacturing.catalog.material.service.MaterialNotActiveException;
 import com.textile.manufacturing.catalog.product.service.DuplicateProductCodeException;
 import com.textile.manufacturing.catalog.product.service.ProductNotFoundException;
 import com.textile.manufacturing.identity.service.DuplicateEmailException;
 import com.textile.manufacturing.identity.service.InvalidCredentialsException;
 import com.textile.manufacturing.identity.service.UnknownRoleException;
 import com.textile.manufacturing.identity.service.UserNotFoundException;
+import com.textile.manufacturing.inventory.service.InventoryItemNotFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -81,13 +83,18 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({ProductNotFoundException.class, MaterialNotFoundException.class,
-        BomNotFoundException.class})
-    ProblemDetail handleCatalogNotFound(RuntimeException exception) {
+        BomNotFoundException.class, InventoryItemNotFoundException.class})
+    ProblemDetail handleNotFound(RuntimeException exception) {
         return problem(HttpStatus.NOT_FOUND, "Not found", exception.getMessage());
     }
 
     @ExceptionHandler(BomMaterialUnavailableException.class)
     ProblemDetail handleBomMaterialUnavailable(BomMaterialUnavailableException exception) {
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid reference", exception.getMessage());
+    }
+
+    @ExceptionHandler(MaterialNotActiveException.class)
+    ProblemDetail handleMaterialNotActive(MaterialNotActiveException exception) {
         return problem(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid reference", exception.getMessage());
     }
 

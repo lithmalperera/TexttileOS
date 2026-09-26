@@ -80,7 +80,7 @@ This is the reduced MVP backlog. It prioritizes one complete manufacturing workf
 - **Priority:** P0
 - **Depends on:** CAT-001, FND-005
 - **Acceptance:** Receipts and adjustments update consistent balances and append movements.
-- **Status:** `PLANNED`
+- **Status:** `COMPLETED`
 
 ### INV-002: Atomic Reservations and Release
 
